@@ -3,7 +3,8 @@
 set -euo pipefail
 
 SAVE_DIR="/etc/iptables"
-FILE_NAME="rules.v5"
+#-------------------------
+
 iptables -P INPUT DROP
 echo "input drop ON"
 sleep 2
@@ -15,12 +16,20 @@ iptables -P OUTPUT ACCEPT
 echo "output accept ON"
 echo "Default settings completed"
 
-echo -n "Starting set port ssh, type here "
+echo -n "Do you want to set SSH port? [y/n]: "
 read sshport
 
-iptables -A INPUT -p tcp --dport $sshport -j ACCEPT
+case $sshport in
+	y) iptables -A INPUT -p tcp --dport $sshport -j ACCEPT
+		echo "SSH port assigned"
+		;;
+	n) echo "No...next steps..."
+		;;
+	*) echo "Error... exit"
+		exit 0
+		;;
 
-echo "ssh port is succesfuly set"
+esac
 
 sleep 2
 
@@ -28,19 +37,23 @@ echo -n "Do you want to save iptables? [y/n]: "
 
 read ans
 
+function getFile {
+	echo -n "Type file name: "
+	read file_name
+	sleep 2
+	iptables-save > $SAVE_DIR/$file_name
+	echo "Success save file $file_name"
+}
+
 function getSave {
 	if [[ -d "$SAVE_DIR" ]]; 
 	then
-		echo "directory is here..."
-		sleep 2
-		iptables-save > $SAVE_DIR/$FILE_NAME
-		echo "Success save file $FILE_NAME"
+		getFile
 	else
-		echo "nothing dir...creating"
+		echo "Creating directory..."
 		sleep 2
 		mkdir $SAVE_DIR
-		iptables-save > $SAVE_DIR/$FILE_NAME		
-		echo "Success save file $FILE_NAME"
+		getFile
 	fi
 }
 case $ans in
@@ -53,6 +66,7 @@ case $ans in
 		;;
 	*)
 		echo "Error..."
+		exit 0
 		;;
 esac
 
