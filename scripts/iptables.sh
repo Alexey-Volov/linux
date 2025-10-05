@@ -3,6 +3,7 @@
 set -euo pipefail
 
 SAVE_DIR="/etc/iptables"
+GLOBAL_DIR="/etc/network/if-pre-up.d"
 #-------------------------
 
 iptables -P INPUT DROP
@@ -17,10 +18,12 @@ echo "output accept ON"
 echo "Default settings completed"
 
 echo -n "Do you want to set SSH port? [y/n]: "
-read sshport
+read sshans
 
-case $sshport in
-	y) iptables -A INPUT -p tcp --dport $sshport -j ACCEPT
+case $sshans in
+	y)	echo -n "Which port? "
+		read port
+	       	iptables -A INPUT -p tcp --dport $port -j ACCEPT
 		echo "SSH port assigned"
 		;;
 	n) echo "No...next steps..."
@@ -33,9 +36,28 @@ esac
 
 sleep 2
 
+echo -n "Do you want to set icmp? [y/n]: "
+read icmpans
+
+case $icmpans in
+	y) echo "Process..."
+		iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
+		iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
+		echo "Ping was assigned"
+		;;
+	n) echo "Next steps..."
+		;;
+	*) echo "Error... exit"
+		exit 0;
+		;;
+esac
+
+
 echo -n "Do you want to save iptables? [y/n]: "
 
 read ans
+
+
 
 function getFile {
 	echo -n "Type file name: "
@@ -70,7 +92,58 @@ case $ans in
 		;;
 esac
 
+echo -n "Do you want global save? [y/n]: "
 
+read global_save
+
+function writeGlobal {
+       	echo -n "Type script name: "
+	read scriptname
+	echo "Creating script..."
+	sleep 2
+	echo -n "Which rules do you want to save? Need a name file in /etc/iptables: "
+	read rulesfile
+	if [ -e "/etc/iptables/$rulesfile" ];
+	then
+		echo "Wait..."
+		sleep 2
+		cat > "$GLOBAL_DIR/$scriptname" << EOF
+#!/bin/bash
+
+#/sbin/iptables-restore < /etc/iptables/$rulesfile
+EOF
+	
+
+	chmod +x "$GLOBAL_DIR/$scriptname"
+	echo "Script is ready!"
+	else
+		echo "Error file not found"
+		exit 0;
+	fi
+	#!/bin/bash
+	
+	#/sbin/iptables-restore < /etc/iptables/$rulesfile
+
+	#touch "$GLOBAL_DIR/$scriptname"
+	
+
+	#chmod +x "$GLOBAL_DIR/$scriptname"
+	
+	echo "The script was installed"
+
+
+
+}
+
+case $global_save in
+	y) writeGlobal
+		;;
+	n) echo "next steps..."
+		;;
+	*) echo "Error...exit"
+		exit 0;
+		;;
+esac
 
 
 
