@@ -6,58 +6,43 @@ SAVE_DIR="/etc/iptables"
 GLOBAL_DIR="/etc/network/if-pre-up.d"
 #-------------------------
 
-iptables -P INPUT DROP
-echo "input drop ON"
-sleep 2
-iptables -P FORWARD DROP
-echo "forward drop ON"
-sleep 2
+echo "
+1) Default settings iptables
+2) Configure SSH
+3) Set ICMP
+4) Save iptables $SAVE_DIR/<rules>
+5) Global save after reboot
+q) Exit
+"
+echo -n "Choose number: "
+read option
 
-iptables -P OUTPUT ACCEPT
-echo "output accept ON"
-echo "Default settings completed"
+function setDefault {
+	iptables -P INPUT DROP
+	echo "input drop ON"
+	sleep 2
+	iptables -P FORWARD DROP
+	echo "forward drop ON"
+	sleep 2
 
-echo -n "Do you want to set SSH port? [y/n]: "
-read sshans
-
-case $sshans in
-	y)	echo -n "Which port? "
-		read port
-	       	iptables -A INPUT -p tcp --dport $port -j ACCEPT
-		echo "SSH port assigned"
-		;;
-	n) echo "No...next steps..."
-		;;
-	*) echo "Error... exit"
-		exit 0
-		;;
-
-esac
-
-sleep 2
-
-echo -n "Do you want to set icmp? [y/n]: "
-read icmpans
-
-case $icmpans in
-	y) echo "Process..."
-		iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
-		iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
-		echo "Ping was assigned"
-		;;
-	n) echo "Next steps..."
-		;;
-	*) echo "Error... exit"
-		exit 0;
-		;;
-esac
-
-
-echo -n "Do you want to save iptables? [y/n]: "
-
-read ans
-
-
+	iptables -P OUTPUT ACCEPT
+	echo "output accept ON"
+	echo "Default settings completed"
+}
+function setSSh {
+	echo -n "Which port? "
+	read port
+	iptables -A INPUT -p tcp --dport $port -j ACCEPT
+	sleep 2
+	echo "SSH port assigned"
+}
+function setICMP {
+	echo "Process..."
+	sleep 2
+	iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
+	iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
+	echo "Ping was assigned"
+}
 
 function getFile {
 	echo -n "Type file name: "
@@ -78,30 +63,19 @@ function getSave {
 		getFile
 	fi
 }
-case $ans in
-	y)
-		getSave
-		;;
-	n)
-		echo "Exit..."
-		exit 0
-		;;
-	*)
-		echo "Error..."
-		exit 0
-		;;
-esac
 
-echo -n "Do you want global save? [y/n]: "
-
-read global_save
 
 function writeGlobal {
        	echo -n "Type script name: "
 	read scriptname
 	echo "Creating script..."
 	sleep 2
-	echo -n "Which rules do you want to save? Need a name file in /etc/iptables: "
+	echo "Getting list files with rules iptables from $SAVE_DIR"
+	sleep 2
+	echo "----------------------------------------------"
+	ls $SAVE_DIR
+	echo "----------------------------------------------"
+	echo -n "Which rules do you want to save? Need a name file in $SAVE_DIR: "
 	read rulesfile
 	if [ -e "/etc/iptables/$rulesfile" ];
 	then
@@ -115,35 +89,47 @@ EOF
 	
 
 	chmod +x "$GLOBAL_DIR/$scriptname"
-	echo "Script is ready!"
+	echo "The script is ready!"
 	else
-		echo "Error file not found"
+		echo "Error! File not found"
 		exit 0;
 	fi
-	#!/bin/bash
-	
-	#/sbin/iptables-restore < /etc/iptables/$rulesfile
-
-	#touch "$GLOBAL_DIR/$scriptname"
-	
-
-	#chmod +x "$GLOBAL_DIR/$scriptname"
 	
 	echo "The script was installed"
 
-
-
 }
 
-case $global_save in
-	y) writeGlobal
+
+case $option in
+	1) setDefault
+		exit 0
 		;;
-	n) echo "next steps..."
+	2)
+		setSSh
+		exit 0
 		;;
-	*) echo "Error...exit"
+	3)
+		setICMP
+		exit 0
+		;;
+	4) 
+		getSave
+		exit 0
+		;;
+	5)
+		writeGlobal
 		exit 0;
 		;;
+	q)
+		echo "Quit..."
+		exit 0
+		;;
+	*)	echo "Error! Wrong key!"
+	       	exit 0
+		;;
 esac
+
+
 
 
 
