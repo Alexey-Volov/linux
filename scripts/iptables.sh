@@ -31,6 +31,10 @@ function setDefault {
 
 	iptables -P OUTPUT ACCEPT
 	echo "[INFO] output accept ON"
+	sleep 2
+	iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+	echo "[INFO] Established connections allowed"
+	echo "-----------------------------------"
 	echo "[INFO] Default settings completed"
 }
 function setSSh {
