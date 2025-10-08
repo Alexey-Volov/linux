@@ -18,19 +18,19 @@ echo "
 q) Exit
 --------------------------------
 "
-echo -n "Choose number: "
+echo -n "Select number: "
 read option
 
 function setDefault {
 	iptables -P INPUT DROP
-	echo "[INFO] input drop ON"
+	echo "[INFO] Chain input DROP"
 	sleep 2
 	iptables -P FORWARD DROP
-	echo "[INFO] forward drop ON"
+	echo "[INFO] Chain forward DROP"
 	sleep 2
 
 	iptables -P OUTPUT ACCEPT
-	echo "[INFO] output accept ON"
+	echo "[INFO] Chain output ACCEPT"
 	sleep 2
 	iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 	echo "[INFO] Established connections allowed"
@@ -38,7 +38,7 @@ function setDefault {
 	echo "[INFO] Default settings completed"
 }
 function setSSh {
-	echo -n "[INFO] Which port? "
+	echo -n "[INFO] Enter the port: "
 	read port
 	iptables -A INPUT -p tcp --dport $port -j ACCEPT
 	sleep 2
@@ -57,7 +57,7 @@ function getFile {
 	read file_name
 	sleep 2
 	iptables-save > $SAVE_DIR/$file_name
-	echo "[INFO] Success save file $file_name"
+	echo "[INFO] The file $file_name was saved successfully"
 }
 
 function getSave {
@@ -65,7 +65,7 @@ function getSave {
 	then
 		getFile
 	else
-		echo "[INFO] Creating directory..."
+		echo "[INFO] Creating a directory..."
 		sleep 2
 		mkdir $SAVE_DIR
 		getFile
@@ -76,14 +76,14 @@ function getSave {
 function writeGlobal {
        	echo -n "[INFO] Type script name: "
 	read scriptname
-	echo "[INFO] Creating script..."
+	echo "[INFO] Creating a script..."
 	sleep 2
-	echo "[INFO] Getting list files with rules iptables from $SAVE_DIR"
+	echo "[INFO] Getting list of files with rules iptables from $SAVE_DIR"
 	sleep 2
 	echo "----------------------------------------------"
 	ls $SAVE_DIR
 	echo "----------------------------------------------"
-	echo -n "[INFO] Which rules do you want to save? Need a name file in $SAVE_DIR: "
+	echo -n "[INFO] What rules do you want to save? Need a name file in $SAVE_DIR: "
 	read rulesfile
 	if [ -e "$SAVE_DIR/$rulesfile" ];
 	then
@@ -92,7 +92,7 @@ function writeGlobal {
 		cat > "$GLOBAL_DIR/$scriptname" << EOF
 #!/bin/bash
 
-#/sbin/iptables-restore < /etc/iptables/$rulesfile
+/sbin/iptables-restore < /etc/iptables/$rulesfile
 EOF
 	
 
