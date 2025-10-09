@@ -3,7 +3,7 @@
 set -euo pipefail
 
 MAIN_DIR="/etc/wireguard"
-SERVER_DIR="/etc/wireguard/server"
+SERVER_DIR="$MAIN_DIR/server"
 PUBLIC_KEY="$SERVER_DIR/publickey.key"
 PRIVATE_KEY="$SERVER_DIR/privatekey.key"
 CONFIG_WG="$MAIN_DIR/wg0.conf"
@@ -43,10 +43,6 @@ function generateKey {
 	chmod 600 $PRIVATE_KEY
 	echo "The keys was generated!"
 	echo ""
-	echo "Creating wg0.conf..."
-	sleep 1
-	touch $CONFIG_WG
-	echo "The config was created"
 }
 
 function initServer {
@@ -58,8 +54,6 @@ function initServer {
 	else
 		if [ -d $SERVER_DIR ]
 		then
-
-			echo "dir est"
 			sleep 2
 			echo ""
 			generateKey
@@ -76,17 +70,30 @@ function initServer {
 
 function createConf {
 	local priv_key=$(cat $PRIVATE_KEY)
+	touch $CONFIG_WG
 	if [ -e $CONFIG_WG ]
 	then
+		if [ -s $CONFIG_WG ]
+		then
+			read -p "Config $CONFIG_WG already has content. Overwrite? [y/n]: " ans
+			if [ "$ans" != "y" ]
+			then 
+				echo "Operation canceled"
+				return
+			fi
+		fi
+
+		read -p "Enter your network interface: " interface
 		echo "Wait..."
 		sleep 2
+
 		cat > $CONFIG_WG << EOF
 [Interface]
 PrivateKey = $priv_key
 Address = $SERVER_ADDRESS
 ListenPort = 51820
-PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE
-PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o enp0s3 -j MASQUERADE
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o $interface -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o $interface -j MASQUERADE
 
 EOF
 	echo "--------------------"
