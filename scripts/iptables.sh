@@ -15,6 +15,7 @@ then
 	echo "Permission denied!"
 	exit 0;
 fi
+
 function showMenu {
 
 echo "
@@ -36,10 +37,10 @@ q) Exit
 function setDefault {
 	iptables -P INPUT DROP
 	echo -e "${GREEN}[INFO] Chain input DROP${NC}"
-	sleep 2
+	sleep 1
 	iptables -P FORWARD DROP
 	echo -e "${GREEN}[INFO] Chain forward DROP${NC}"
-	sleep 2
+	sleep 1
 
 	iptables -P OUTPUT ACCEPT
 	echo -e "${GREEN}[INFO] Chain output ACCEPT${NC}"
@@ -53,12 +54,12 @@ function setSSh {
 	echo -n "[INFO] Enter the port: "
 	read port
 	iptables -A INPUT -p tcp --dport $port -j ACCEPT
-	sleep 2
+	sleep 1
 	echo -e "${GREEN}[INFO] SSH port assigned${NC}"
 }
 function setICMP {
 	echo -e "${GREEN}[INFO] Process...${NC}"
-	sleep 2
+	sleep 1
 	iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
 	iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
 	echo -e "${GREEN}[INFO] Ping was assigned${NC}"
@@ -67,7 +68,7 @@ function setICMP {
 function getFile {
 	echo -n "[INFO] Type file name: "
 	read file_name
-	sleep 2
+	sleep 1
 	iptables-save > $SAVE_DIR/$file_name
 	echo -e "${GREEN}[INFO] The file $file_name was saved successfully${NC}"
 }
@@ -78,7 +79,7 @@ function getSave {
 		getFile
 	else
 		echo -e "${GREEN}[INFO] Creating a directory...${NC}"
-		sleep 2
+		sleep 1
 		mkdir $SAVE_DIR
 		getFile
 	fi
@@ -89,9 +90,9 @@ function writeGlobal {
        	echo -n "[INFO] Type script name: "
 	read scriptname
 	echo -e "${GREEN}[INFO] Creating a script...${NC}"
-	sleep 2
+	sleep 1
 	echo -e "${GREEN}[INFO] Getting list of files with rules iptables from $SAVE_DIR${NC}"
-	sleep 2
+	sleep 1
 	echo "----------------------------------------------"
 	ls $SAVE_DIR
 	echo "----------------------------------------------"
@@ -128,7 +129,7 @@ function loadRules {
 	if [ -e $SAVE_DIR/$fileselected ];
 	then
 		echo -e "${GREEN}[INFO] File found! Wait...${NC}"
-		sleep 2
+		sleep 1
 		iptables-restore < $SAVE_DIR/$fileselected
 		echo "${GREEN}[INFO] Success!${NC}"
 	else
@@ -140,51 +141,49 @@ function checkiptables {
 	clear
 	iptables -L -n -v
 }
+function deleteFileFromDir {
+	local DIR="$1"
+	local DESC="$2"
+
+	echo -e "${GREEN}[INFO] Getting list rules from $DIR...${NC}"
+	sleep 1
+	echo "------------------------------------------"
+	ls "$DIR"
+	echo "------------------------------------------"
+	echo -n "Select file: "
+	read deletefile
+	local TARGET="$DIR/$deletefile"
+
+	if [ -e "$TARGET" ];
+	then
+		rm -rf "$TARGET"
+		echo -e "${GREEN}[INFO] The $DESC file '$deletefile' was deleted${NC}"
+	else
+		echo -e "${RED}[INFO] Error! File '$deletefile' not found in $DIR${NC}"
+	fi
+}
+
 function deleteRules {
 	clear
        	echo "
 1) Delete rules from $SAVE_DIR
 2) Delete global rules from $GLOBAL_DIR
+q) Quit
 	"	
 	echo -n "Select a number: "
 	read opt
 
 
 	case $opt in
-		1) 	echo -e "${GREEN}[INFO]Getting list rules...${NC}"
-		sleep 2
-		echo "----------------------------------------"
-		ls $SAVE_DIR
-		echo "----------------------------------------"
-		echo -n "Select file: "
-		read deletefile
-		TARGET="$SAVE_DIR/$deletefile"
-		if [ -e $TARGET ];
-		then
-			rm -rf $TARGET
-			echo -e "${GREEN}[INFO] The file $deletefile was deleted${NC}"
-		else
-			echo -e "${RED}[INFO] Error! File not found!${NC}"
-		fi
-		;;
-		2) 	echo -e "${GREEN}[INFO]Getting list rules...${NC}"
-			sleep 2
-			echo "----------------------------------------"
-		ls $GLOBAL_DIR
-		echo "----------------------------------------"
-		echo -n "Select file: "
-		read deletefile
-		GLOBAL_TARGET="$GLOBAL_DIR/$deletefile"
-		if [ -e $GLOBAL_TARGET ];
-		then
-			rm -rf $GLOBAL_TARGET
-			echo -e "${GREEN}[INFO] The file $deletefile was deleted${NC}"
-		else
-			echo -e "${RED}[INFO] Error! File $deletefile not found!${NC}"
-		fi
-		;;
-		*)	echo "Exit..."
-		       	exit 0
+		1)
+			deleteFileFromDir "$SAVE_DIR" "local"
+			;;
+		2)	deleteFileFromDir "$GLOBAL_DIR" "global"
+			;;
+		q) echo "Exit..."
+			;;
+		*)
+			echo -e "${RED}[INFO] Wrong key!${NC}"
 			;;
 	esac
 
