@@ -22,6 +22,8 @@ function showNav {
 1) Install Wireguard
 2) Generate keys
 3) Create base wg0.conf
+4) Set IP forward
+5) Enable service
 q) Quit
 "
 	echo "------------------------"
@@ -103,6 +105,33 @@ EOF
 	fi
 }
 
+function setIpForward {
+	echo "Process..."
+	sleep 2
+	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	echo "Done"
+	echo "Check sysctl..."
+	echo ""
+	sysctl -p
+}
+
+function enableWireguard {
+	echo "Enable service..."
+	sleep 1
+	systemctl enable wg-quick@wg0.service
+	echo "Starting service..."
+	sleep 1
+	systemctl start wg-quick@wg0.service
+	echo "Check status..."
+	sleep 1
+	echo "--------------------------------"
+	systemctl status  wg-quick@wg0.service
+	echo "--------------------------------"
+
+
+}
+
+
 while true; do
 	showNav
 	echo -n "Select a number: "
@@ -112,6 +141,8 @@ while true; do
 		1) getWireguard ;;
 		2) initServer ;;
 		3) createConf ;;
+		4) setIpForward ;;
+		5) enableWireguard ;;
 		*) echo "Exit..."
 			exit
 		       	;;
