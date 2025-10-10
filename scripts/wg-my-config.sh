@@ -9,6 +9,10 @@ PRIVATE_KEY="$SERVER_DIR/privatekey.key"
 CONFIG_WG="$MAIN_DIR/wg0.conf"
 SERVER_ADDRESS="10.0.0.1/24"
 
+SERVICE="wg-quick@wg0"
+
+CLIENT_DIR="$MAIN_DIR/clients"
+
 if [ $EUID != 0 ]
 then
 	echo "Permission denied!"
@@ -20,10 +24,12 @@ function showNav {
 	echo "------------------------"
 	echo "
 1) Install Wireguard
-2) Generate keys
+2) Generate server keys
 3) Create base wg0.conf
 4) Set IP forward
 5) Enable service
+6) Create client
+7) Restart service
 q) Quit
 "
 	echo "------------------------"
@@ -38,7 +44,20 @@ function getWireguard {
 	echo ""
 }
 
-function generateKey {
+function restartWireguard {
+	clear
+	echo "Starting restart..."
+	sleep 1
+	systemctl restart $SERVICE
+	echo "Done!"
+	sleep 2
+	echo "Check status $SERVICE"
+	echo "------------------------------------------"
+	systemctl status $SERVICE
+	echo "------------------------------------------"
+}
+
+function generateServerKey {
 	echo "Generating private and public key..."
 	sleep 2
 	wg genkey | tee $PRIVATE_KEY | wg pubkey | tee $PUBLIC_KEY
@@ -58,12 +77,12 @@ function initServer {
 		then
 			sleep 2
 			echo ""
-			generateKey
+			generateServerKey
 		else
 			echo "Creating directory"
 			sleep 2
 			mkdir $SERVER_DIR
-			generateKey
+			generateServerKey
 		
 		fi
 	fi
@@ -131,6 +150,77 @@ function enableWireguard {
 
 }
 
+function addClientConfig {
+	read -p "Type address client (ex: 10.0.0.2/32): " clientAddress
+	getKey=$(cat $client/publickey.key)
+	getPrivateKey=$(cat $client/privatekey.key)
+	configClient="$client/$clientName.conf"
+	serv_key=$(cat $PUBLIC_KEY)
+	cat >> "$CONFIG_WG" << EOF
+# Client - $clientName
+[Peer]
+PublicKey = $getKey
+AllowedIPs = $clientAddress
+EOF
+	echo "Client was added to config server!"
+	sleep 2
+	clear
+	
+	echo "----------------------------------"
+	echo "Create config client..."
+	read -p "Type IP address server: " server_address
+	touch $configClient
+	sleep 1
+
+	cat > "$configClient" << EOF
+[Interface]
+PrivateKey = $getPrivateKey
+Address = $clientAddress
+DNS = 8.8.8.8
+
+[Peer]
+PublicKey = $serv_key
+EndPoint = $server_address:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 20
+EOF
+	echo "----------------------------------"
+	echo "The file $configClient is ready!"
+
+}
+
+function createClientKeys {
+	read -p "Type client name: " clientName
+	echo "Creating client directory - $clientName"
+	sleep 1
+	mkdir $CLIENT_DIR/$clientName
+	#touch $CLIENT_DIR/$clientName/$clientName.conf
+	client="$CLIENT_DIR/$clientName"
+
+	echo "The directory and empty config was created"
+	echo "-------------------------"
+	echo "Generating private and public client keys..."
+	
+	sleep 2
+	wg genkey | tee $client/privatekey.key | wg pubkey | tee $client/publickey.key
+	echo "The private and public keys was generated"
+	addClientConfig
+}
+
+function createClient {
+	if [ -d $CLIENT_DIR ]
+	then
+		createClientKeys
+		sleep 2
+
+	else
+		mkdir $CLIENT_DIR
+		createClientKeys
+	fi
+
+}
+
+
 
 while true; do
 	showNav
@@ -143,6 +233,8 @@ while true; do
 		3) createConf ;;
 		4) setIpForward ;;
 		5) enableWireguard ;;
+		6) createClient ;;
+		7) restartWireguard ;;
 		*) echo "Exit..."
 			exit
 		       	;;
