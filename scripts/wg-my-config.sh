@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+LOG_FILE="/var/log/wg-setup.log"
+
 MAIN_DIR="/etc/wireguard"
 SERVER_DIR="$MAIN_DIR/server"
 PUBLIC_KEY="$SERVER_DIR/publickey.key"
@@ -18,6 +20,10 @@ then
 	echo "Permission denied!"
 	exit 0;
 fi
+
+function log {
+	echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
 
 function showNav {
 	
@@ -41,7 +47,7 @@ function getWireguard {
 	echo ""
 	echo "Wireguard was installed"
 
-	echo ""
+	log "Wireguard was installed"
 }
 
 function restartWireguard {
@@ -56,6 +62,8 @@ function restartWireguard {
 	echo "------------------------------------------"
 	systemctl status $SERVICE
 	echo "------------------------------------------"
+
+	log "Wireguard was restarted"
 }
 
 function generateServerKey {
@@ -65,6 +73,7 @@ function generateServerKey {
 	chmod 600 $PRIVATE_KEY
 	echo "The keys was generated!"
 	echo ""
+	log "The server keys was generated"
 }
 
 function initServer {
@@ -120,6 +129,7 @@ PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -
 EOF
 	echo "--------------------"
 	echo "The config is ready"
+	log "The server config was created"
 	else
 		echo "ERROR"
 	fi
@@ -158,7 +168,9 @@ function addClientConfig {
 	configClient="$client/$clientName.conf"
 	serv_key=$(cat $PUBLIC_KEY)
 	cat >> "$CONFIG_WG" << EOF
+
 # Client - $clientName
+
 [Peer]
 PublicKey = $getKey
 AllowedIPs = $clientAddress
@@ -187,6 +199,7 @@ PersistentKeepalive = 20
 EOF
 	echo "----------------------------------"
 	echo "The file $configClient is ready!"
+	log "Created $clientName config"
 
 }
 
@@ -196,7 +209,7 @@ function createClientKeys {
 
 	if [ -d $client ]
 	then
-		echo "Client $client is already exist!"
+		echo "Client $clientName is already exist!"
 		return
 	fi
 
@@ -213,6 +226,7 @@ function createClientKeys {
 	wg genkey | tee $client/privatekey.key | wg pubkey | tee $client/publickey.key
 	echo "The private and public keys was generated"
 	addClientConfig
+	log "Created public and private keys for $clientName"
 }
 
 function createClient {
