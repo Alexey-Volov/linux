@@ -46,7 +46,8 @@ function getWireguard {
 
 function restartWireguard {
 	clear
-	echo "Starting restart..."
+	echo "------------------------------------------"
+	echo "Starting restart service..."
 	sleep 1
 	systemctl restart $SERVICE
 	echo "Done!"
@@ -71,7 +72,7 @@ function initServer {
 	if [ "$checkKey" -gt 0 ]
 	then
 		echo "ERROR! KEYS IS HERE!"
-		exit 0;
+		return
 	else
 		if [ -d $SERVER_DIR ]
 		then
@@ -127,7 +128,7 @@ EOF
 function setIpForward {
 	echo "Process..."
 	sleep 2
-	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	grep -qxF "net.ipv4.ip_forward=1" /etc/sysctl.conf || echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 	echo "Done"
 	echo "Check sysctl..."
 	echo ""
@@ -164,7 +165,7 @@ AllowedIPs = $clientAddress
 EOF
 	echo "Client was added to config server!"
 	sleep 2
-	clear
+	restartWireguard
 	
 	echo "----------------------------------"
 	echo "Create config client..."
@@ -180,7 +181,7 @@ DNS = 8.8.8.8
 
 [Peer]
 PublicKey = $serv_key
-EndPoint = $server_address:51820
+Endpoint = $server_address:51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 20
 EOF
@@ -191,11 +192,18 @@ EOF
 
 function createClientKeys {
 	read -p "Type client name: " clientName
+	client="$CLIENT_DIR/$clientName"
+
+	if [ -d $client ]
+	then
+		echo "Client $client is already exist!"
+		return
+	fi
+
 	echo "Creating client directory - $clientName"
 	sleep 1
 	mkdir $CLIENT_DIR/$clientName
-	#touch $CLIENT_DIR/$clientName/$clientName.conf
-	client="$CLIENT_DIR/$clientName"
+	#client="$CLIENT_DIR/$clientName"
 
 	echo "The directory and empty config was created"
 	echo "-------------------------"
