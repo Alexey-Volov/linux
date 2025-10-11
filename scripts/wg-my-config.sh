@@ -15,6 +15,11 @@ SERVICE="wg-quick@wg0"
 
 CLIENT_DIR="$MAIN_DIR/clients"
 
+
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+NC="\033[0m"
+
 if [ $EUID != 0 ]
 then
 	echo "Permission denied!"
@@ -45,20 +50,18 @@ q) Quit
 function getWireguard {
 	apt install wireguard -y
 	echo ""
-	echo "Wireguard was installed"
-
 	log "Wireguard was installed"
 }
 
 function restartWireguard {
 	clear
 	echo "------------------------------------------"
-	echo "Starting restart service..."
+	echo -e "${GREEN}Starting restart service...${NC}"
 	sleep 1
 	systemctl restart $SERVICE
-	echo "Done!"
+	echo -e "${GREEN}Done!${NC}"
 	sleep 2
-	echo "Check status $SERVICE"
+	echo -e "${GREEN}Check status $SERVICE${NC}"
 	echo "------------------------------------------"
 	systemctl status $SERVICE
 	echo "------------------------------------------"
@@ -67,11 +70,11 @@ function restartWireguard {
 }
 
 function generateServerKey {
-	echo "Generating private and public key..."
+	echo -e "${GREEN}Generating private and public key...${NC}"
 	sleep 2
 	wg genkey | tee $PRIVATE_KEY | wg pubkey | tee $PUBLIC_KEY
 	chmod 600 $PRIVATE_KEY
-	echo "The keys was generated!"
+	echo -e "${GREEN}The keys was generated!${NC}"
 	echo ""
 	log "The server keys was generated"
 }
@@ -80,7 +83,7 @@ function initServer {
 	local checkKey=$(ls $SERVER_DIR/*.key 2>/dev/null | wc -l)
 	if [ "$checkKey" -gt 0 ]
 	then
-		echo "ERROR! KEYS IS HERE!"
+		echo -e "${RED}ERROR! The keys is already exist!${NC}"
 		return
 	else
 		if [ -d $SERVER_DIR ]
@@ -89,7 +92,7 @@ function initServer {
 			echo ""
 			generateServerKey
 		else
-			echo "Creating directory"
+			echo -e "${GREEN}Creating directory${NC}"
 			sleep 2
 			mkdir $SERVER_DIR
 			generateServerKey
@@ -109,13 +112,13 @@ function createConf {
 			read -p "Config $CONFIG_WG already has content. Overwrite? [y/n]: " ans
 			if [ "$ans" != "y" ]
 			then 
-				echo "Operation canceled"
+				echo -e "${RED}Operation canceled${NC}"
 				return
 			fi
 		fi
 
 		read -p "Enter your network interface: " interface
-		echo "Wait..."
+		echo -e "${GREEN}Creating config server...${NC}"
 		sleep 2
 
 		cat > $CONFIG_WG << EOF
@@ -128,31 +131,31 @@ PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -
 
 EOF
 	echo "--------------------"
-	echo "The config is ready"
+	echo -e "${GREEN}The config is ready${NC}"
 	log "The server config was created"
 	else
-		echo "ERROR"
+		echo -e "${RED}ERROR${NC}"
 	fi
 }
 
 function setIpForward {
-	echo "Process..."
+	echo -e "${GREEN}Setting forwarding...${NC}"
 	sleep 2
 	grep -qxF "net.ipv4.ip_forward=1" /etc/sysctl.conf || echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-	echo "Done"
-	echo "Check sysctl..."
+	echo -e "${GREEN}Done${NC}"
+	echo -e "${GREEN}Check sysctl...${NC}"
 	echo ""
 	sysctl -p
 }
 
 function enableWireguard {
-	echo "Enable service..."
+	echo -e "${GREEN}Enable service...${NC}"
 	sleep 1
 	systemctl enable wg-quick@wg0.service
-	echo "Starting service..."
+	echo -e "${GREEN}Starting service...${NC}"
 	sleep 1
 	systemctl start wg-quick@wg0.service
-	echo "Check status..."
+	echo -e "${GREEN}Check status...${NC}"
 	sleep 1
 	echo "--------------------------------"
 	systemctl status  wg-quick@wg0.service
@@ -180,7 +183,7 @@ EOF
 	restartWireguard
 	
 	echo "----------------------------------"
-	echo "Create config client..."
+	echo -e "${GREEN}Create config client...${NC}"
 	read -p "Type IP address server: " server_address
 	touch $configClient
 	sleep 1
@@ -198,7 +201,7 @@ AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 20
 EOF
 	echo "----------------------------------"
-	echo "The file $configClient is ready!"
+	echo -e "${GREEN}The file $clientName.conf is ready!${NC}"
 	log "Created $clientName config"
 
 }
@@ -209,22 +212,19 @@ function createClientKeys {
 
 	if [ -d $client ]
 	then
-		echo "Client $clientName is already exist!"
+		echo -e "${GREEN}Client $clientName is already exist!${NC}"
 		return
 	fi
 
-	echo "Creating client directory - $clientName"
+	echo -e "${GREEN}Creating client directory - $clientName${NC}"
 	sleep 1
 	mkdir $CLIENT_DIR/$clientName
-	#client="$CLIENT_DIR/$clientName"
-
-	echo "The directory and empty config was created"
+	echo -e "${GREEN}The directory and empty config was created${NC}"
 	echo "-------------------------"
-	echo "Generating private and public client keys..."
+	echo -e "${GREEN}Generating private and public client keys...${NC}"
 	
 	sleep 2
 	wg genkey | tee $client/privatekey.key | wg pubkey | tee $client/publickey.key
-	echo "The private and public keys was generated"
 	addClientConfig
 	log "Created public and private keys for $clientName"
 }
@@ -257,10 +257,10 @@ while true; do
 		5) enableWireguard ;;
 		6) createClient ;;
 		7) restartWireguard ;;
-		*) echo "Exit..."
+		*) echo -e "${RED}Exit...${NC}"
 			exit
 		       	;;
-		q) echo "Exit..."
+		q) echo -e "${RED}Exit...${NC}"
 			exit
 			;;
 	esac
