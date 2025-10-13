@@ -131,7 +131,7 @@ function loadRules {
 		echo -e "${GREEN}[INFO] File found! Wait...${NC}"
 		sleep 1
 		iptables-restore < $SAVE_DIR/$fileselected
-		echo "${GREEN}[INFO] Success!${NC}"
+		echo -e "${GREEN}[INFO] Success!${NC}"
 	else
 		echo -e "${RED}[INFO] Error! File not found!${NC}"
 	fi
