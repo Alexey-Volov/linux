@@ -41,6 +41,8 @@ function showNav {
 5) Enable service
 6) Create client
 7) Restart service
+8) Check wg show
+9) Delete wireguard
 q) Quit
 "
 	echo "------------------------"
@@ -242,8 +244,44 @@ function createClient {
 
 }
 
+function viewShow {
+	clear
+	echo "------------------ WG SHOW -------------------"
+	wg show
+	echo "----------------------------------------------"
+}
+function deleteWireguard {
+	clear
+	sleep 1
+	read -p "Are sure want to delete wireguard? [y/n]: " del
+	wgInt=$(iptables -L -n -v --line-numbers | grep wg0 | awk '{print $1}')
+	case $del in
+		y) 
+			apt remove wireguard -y
+			apt autoremove -y
+			apt purge wireguard -y
+			ip link del wg0
+			for i in $wgInt 
+			do
+				iptables -D FORWARD $i
+			done	
+			echo -e "${RED}Removed wireguard service${NC}"
+			echo -e "${RED}Removed wg0 interface${NC}"
+			echo -e "${RED}Removed iptables rules${NC}"
+			sleep 1
+			echo -e "${RED}Deleted wireguard directory${NC}"
 
+			echo -e "${RED}Deleted wireguard logs${NC}"
+	
+			rm -rf $MAIN_DIR
+			rm -rf $LOG_FILE
+			;;
 
+		n)	echo -e "${RED}Canceled${NC}"
+		       	return ;;
+		*) return ;;
+	esac
+}
 while true; do
 	showNav
 	echo -n "Select a number: "
@@ -257,6 +295,8 @@ while true; do
 		5) enableWireguard ;;
 		6) createClient ;;
 		7) restartWireguard ;;
+		8) viewShow ;;
+		9) deleteWireguard ;;
 		*) echo -e "${RED}Exit...${NC}"
 			exit
 		       	;;
